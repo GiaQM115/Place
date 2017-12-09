@@ -10,7 +10,7 @@ import java.net.Socket;
 import java.util.Observable;
 import java.util.Observer;
 
-public class PlacePTUI implements Observer{
+public class PlacePTUI extends Thread implements Observer{
 
     private String username;
     private BufferedReader userInput;
@@ -48,11 +48,8 @@ public class PlacePTUI implements Observer{
             ObjectOutputStream out = new ObjectOutputStream(connection.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(connection.getInputStream());
             PlacePTUI ui = new PlacePTUI(args[2],connection,out,in);
-            ui.worker.join();
             ui.worker.start();
-            while(ui.worker.getBoard() == null) {
-                // do nothing
-            }
+            ui.sleep(1000);
             ui.setBoard(ui.worker.getBoard());
         } catch (IOException ioe) {
             System.out.println(ioe.getMessage());
