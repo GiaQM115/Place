@@ -1,14 +1,25 @@
 package place.network;
 
+import place.PlaceColor;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 public class PlaceExchange {
 
-    public static final String LOGGED_IN = "Place: "; // append with username and IP
+    public static final String LOGGED_IN = "Login successful! Welcome, "; // append with username and IP
     public static final String BAD_USERNAME = "This username is already in use.";
     public static final String LOGGED_OUT = "This client has logged out.";
+    public static final String DATA_NOT_VALID = "Received invalid data\nNo changes made to state of board";
+    public static final String INVALID_TYPE = "Cannot handle requests of type ";
+
+    public static final PlaceColor[] COLORS = {
+            PlaceColor.BLACK,PlaceColor.GRAY,PlaceColor.SILVER,PlaceColor.WHITE,
+            PlaceColor.MAROON,PlaceColor.RED,PlaceColor.OLIVE, PlaceColor.YELLOW,
+            PlaceColor.GREEN,PlaceColor.LIME,PlaceColor.TEAL,PlaceColor.AQUA,
+            PlaceColor.NAVY,PlaceColor.BLUE,PlaceColor.PURPLE,PlaceColor.FUCHSIA
+    };
 
     /**
      * used by clients and server to send packets back and forth

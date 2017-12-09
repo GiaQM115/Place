@@ -1,15 +1,17 @@
 package place.client;
 
 import place.PlaceBoard;
+import place.PlaceTile;
 import place.network.PlaceExchange;
 import place.network.PlaceRequest;
 
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 public class NetworkClient extends Thread {
+
+    public static boolean loginFailed;
 
     private String username;
     private Socket connection;
@@ -24,6 +26,18 @@ public class NetworkClient extends Thread {
         in = i;
     }
 
+    public void setUsername(String u) {
+        username = u;
+    }
+
+    public ObjectOutputStream getOutStream() {
+        return out;
+    }
+
+    public boolean running() {
+        return !(connection.isClosed());
+    }
+
     public PlaceBoard getBoard() {
         return board;
     }
@@ -34,9 +48,12 @@ public class NetworkClient extends Thread {
         while(!connection.isClosed()) {
             PlaceRequest request = PlaceExchange.receiveRequest(in);
             switch (request.getType()) {
+
                 case LOGIN_SUCCESS:
+                    loginFailed = false;
                     System.out.println(request.getData().toString());
                     break;
+
                 case BOARD:
                     board = (PlaceBoard)request.getData();
                     try {
@@ -47,17 +64,25 @@ public class NetworkClient extends Thread {
                         System.exit(1);
                     }
                     break;
+
                 case TILE_CHANGED:
-                    System.out.println(request.getData().toString());
+                    PlaceTile current = (PlaceTile)request.getData();
+                    board.setTile(current);
+                    BoardModel.setRecent(current);
                     break;
+
                 case ERROR:
                     System.out.println(request.getData().toString());
-                    if(!(request.getData().toString().equals(PlaceExchange.BAD_USERNAME))) {
+                    if(request.getData().toString().equals(PlaceExchange.BAD_USERNAME)) {
+                        loginFailed = true;
+                    }
+                    else if(!request.getData().toString().equals(PlaceExchange.DATA_NOT_VALID)) {
                         System.exit(1);
                     }
                     break;
+
                 default:
-                    PlaceExchange.writeTo(out,new PlaceRequest(PlaceRequest.RequestType.ERROR,"Cannot handle request of type " + request.getType().toString()));
+                    PlaceExchange.writeTo(out,new PlaceRequest(PlaceRequest.RequestType.ERROR,PlaceExchange.INVALID_TYPE + request.getType().toString()));
                     break;
             }
         }
