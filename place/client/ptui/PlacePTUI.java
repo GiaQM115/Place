@@ -3,14 +3,15 @@ package place.client.ptui;
 import place.PlaceBoard;
 import place.PlaceColor;
 import place.PlaceTile;
-import place.client.BoardModel;
 import place.client.NetworkClient;
-import place.network.PlaceExchange;
 import place.network.PlaceRequest;
+
+import static place.PlaceColor.*;
+import static place.network.PlaceExchange.*;
+import static place.network.PlaceRequest.RequestType.*;;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.Date;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -18,60 +19,65 @@ public class PlacePTUI extends Thread implements Observer{
 
     private String username;
     private BufferedReader userInput;
-    private BoardModel model;
+    private PlaceBoard board;
     private NetworkClient worker;
 
-    public PlacePTUI(String u, Socket con, ObjectOutputStream o, ObjectInputStream i) {
+    public PlacePTUI(String u) {
         username = u;
         userInput = new BufferedReader(new InputStreamReader(System.in));
-        worker = new NetworkClient(u, con, o, i);
     }
 
-    public void setBoard(PlaceBoard b) {
-        model = new BoardModel(b);
-        model.addObserver(this);
+    public void initBoard() {
+        board = worker.getBoard();
         updateView();
+    }
+
+    public void setWorker(Socket con, ObjectOutputStream o, ObjectInputStream i) {
+        worker = new NetworkClient(username, con, o, i, this);
     }
 
     public void update(Observable t, Object o) {
-        ((BoardModel)t).update((PlaceTile)o);
+        board.setTile((PlaceTile)o);
+        String owner = ((PlaceTile)o).getOwner();
+        if(!owner.equals(username)) {
+            System.out.println("\n" + owner + " changed a tile!");
+        }
         updateView();
+        if(!owner.equals(username)) {
+            System.out.println("\nMove[row col color]: ");
+        }
     }
 
     public void updateView() {
-        System.out.println("Place: " + username + "\n" + model.getBoard().toString() + "\n");
+        System.out.println("Place: " + username + board.toString() + "\n");
     }
 
     private PlaceColor getColor(int c) {
-        for(PlaceColor color : PlaceExchange.COLORS) {
+        for(PlaceColor color : COLORS) {
             if(c == color.getNumber()) {
                 return color;
-
             }
         }
-        return PlaceColor.BLACK;
+        return BLACK;
     }
 
     private void logout() {
-        PlaceExchange.writeTo(worker.getOutStream(),new PlaceRequest(PlaceRequest.RequestType.ERROR,PlaceExchange.LOGGED_OUT));
+        writeTo(worker.getOutStream(),new PlaceRequest(ERROR,LOGGED_OUT));
         System.exit(1);
     }
 
     private void retryLogin(String command) {
-        username = command;
-        worker.setUsername(command);
-        PlaceExchange.writeTo(worker.getOutStream(),new PlaceRequest(PlaceRequest.RequestType.LOGIN,username));
+        writeTo(worker.getOutStream(),new PlaceRequest(LOGIN,command));
     }
 
-    private void formatTile(String command, long time) {
-        String[] cmd = command.split(" ");
+    private void formatTile(int[] cmd, long time) {
         if (cmd.length == 3) {
-            PlaceColor col = getColor(Integer.parseInt(cmd[2]));
-            if (col.getNumber() == Integer.parseInt(cmd[2])) {
-                PlaceTile t = new PlaceTile(Integer.parseInt(cmd[0]), Integer.parseInt(cmd[1]), username, col, time);
-                PlaceExchange.writeTo(worker.getOutStream(), new PlaceRequest(PlaceRequest.RequestType.CHANGE_TILE, t));
+            PlaceColor col = getColor(cmd[2]);
+            if (col.getNumber() == (cmd[2])) {
+                PlaceTile t = new PlaceTile((cmd[0]), (cmd[1]), username, col, time);
+                writeTo(worker.getOutStream(), new PlaceRequest(CHANGE_TILE, t));
             } else {
-                PlaceExchange.writeTo(worker.getOutStream(), new PlaceRequest(PlaceRequest.RequestType.ERROR, PlaceExchange.DATA_NOT_VALID));
+                writeTo(worker.getOutStream(), new PlaceRequest(ERROR, DATA_NOT_VALID));
             }
         }
     }
@@ -79,13 +85,18 @@ public class PlacePTUI extends Thread implements Observer{
     @Override
     public void run() {
         while(worker.running()) {
-            System.out.println("\n");
             try {
 
                 if(NetworkClient.loginFailed) {
-                    System.out.println("Try another username, or -1 to exit. ");
+                    System.out.println("Type another username, or -1 to exit.");
                 }
                 else {
+                    if(!username.equals(worker.getUsername())) {
+                        username = worker.getUsername();
+                    }
+                    if(board == null) {
+                        initBoard();
+                    }
                     System.out.println("Move[row col color]: ");
                 }
                 String command = userInput.readLine();
@@ -100,20 +111,26 @@ public class PlacePTUI extends Thread implements Observer{
                 }
 
                 else {
-                    formatTile(command, time);
+                    String[] temp = command.split(" ");
+                    int[] cmd = {Integer.parseInt(temp[0]), Integer.parseInt(temp[1]), Integer.parseInt(temp[2])};
+                    if((cmd[0] >= 0) && (cmd[0] < board.DIM) && (cmd[1] >= 0) && (cmd[1] < board.DIM)) {
+                        formatTile(cmd,time);
+                    }
+                    else {
+                        writeTo(worker.getOutStream(),new PlaceRequest(ERROR,DATA_NOT_VALID));
+                        System.out.println(DATA_NOT_VALID);
+                    }
                 }
 
                 sleep(500);
-                model.notifier();
 
             } catch (IOException ioe) {
                 System.out.println(ioe.getMessage());
             } catch (InterruptedException ie) {
                 System.out.println(ie.getMessage());
-                PlaceExchange.writeTo(worker.getOutStream(),new PlaceRequest(PlaceRequest.RequestType.ERROR,PlaceExchange.LOGGED_OUT));
+                writeTo(worker.getOutStream(),new PlaceRequest(ERROR,LOGGED_OUT));
                 System.exit(1);
             }
-            System.out.println("\n");
         }
     }
 
@@ -126,10 +143,10 @@ public class PlacePTUI extends Thread implements Observer{
             Socket connection = new Socket(args[0], Integer.parseInt(args[1]));
             ObjectOutputStream out = new ObjectOutputStream(connection.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(connection.getInputStream());
-            PlacePTUI ui = new PlacePTUI(args[2],connection,out,in);
+            PlacePTUI ui = new PlacePTUI(args[2]);
+            ui.setWorker(connection,out,in);
             ui.worker.start();
             ui.sleep(1000);
-            ui.setBoard(ui.worker.getBoard());
             ui.start();
         } catch (IOException ioe) {
             System.out.println(ioe.getMessage());

@@ -2,12 +2,15 @@ package place.client;
 
 import place.PlaceBoard;
 import place.PlaceTile;
-import place.network.PlaceExchange;
 import place.network.PlaceRequest;
+
+import static place.network.PlaceExchange.*;
+import static place.network.PlaceRequest.RequestType.*;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.Observer;
 
 public class NetworkClient extends Thread {
 
@@ -17,17 +20,19 @@ public class NetworkClient extends Thread {
     private Socket connection;
     private ObjectOutputStream out;
     private ObjectInputStream in;
-    private PlaceBoard board;
+    private BoardModel model;
+    private Observer ui;
 
-    public NetworkClient(String u, Socket con, ObjectOutputStream o, ObjectInputStream i) {
+    public NetworkClient(String u, Socket con, ObjectOutputStream o, ObjectInputStream i, Observer observer) {
         username = u;
         connection = con;
         out = o;
         in = i;
+        ui = observer;
     }
 
-    public void setUsername(String u) {
-        username = u;
+    public String getUsername() {
+        return username;
     }
 
     public ObjectOutputStream getOutStream() {
@@ -39,50 +44,55 @@ public class NetworkClient extends Thread {
     }
 
     public PlaceBoard getBoard() {
-        return board;
+        return model.getBoard();
     }
 
     @Override
     public void run() {
-        PlaceExchange.writeTo(out,new PlaceRequest(PlaceRequest.RequestType.LOGIN,username));
+        writeTo(out,new PlaceRequest(LOGIN,username));
         while(!connection.isClosed()) {
-            PlaceRequest request = PlaceExchange.receiveRequest(in);
+            PlaceRequest request = receiveRequest(in);
             switch (request.getType()) {
 
                 case LOGIN_SUCCESS:
+                    String data = request.getData().toString();
+                    String ip = connection.getLocalSocketAddress().toString();
+                    username = data.substring(LOGGED_IN.length(),(data.length() - ip.length()));
                     loginFailed = false;
-                    System.out.println(request.getData().toString());
+                    System.out.println(data);
                     break;
 
                 case BOARD:
-                    board = (PlaceBoard)request.getData();
+                    model = new BoardModel((PlaceBoard)request.getData());
+                    model.addObserver(ui);
                     try {
                         this.sleep(500);
                     } catch(InterruptedException ie) {
                         System.out.println(ie.getMessage());
-                        PlaceExchange.writeTo(out,new PlaceRequest(PlaceRequest.RequestType.ERROR,PlaceExchange.LOGGED_OUT));
+                        writeTo(out,new PlaceRequest(ERROR,LOGGED_OUT));
                         System.exit(1);
                     }
                     break;
 
                 case TILE_CHANGED:
                     PlaceTile current = (PlaceTile)request.getData();
-                    board.setTile(current);
-                    BoardModel.setRecent(current);
+                    model.update(current);
+                    model.notifier(current);
+
                     break;
 
                 case ERROR:
                     System.out.println(request.getData().toString());
-                    if(request.getData().toString().equals(PlaceExchange.BAD_USERNAME)) {
+                    if(request.getData().toString().equals(BAD_USERNAME)) {
                         loginFailed = true;
                     }
-                    else if(!request.getData().toString().equals(PlaceExchange.DATA_NOT_VALID)) {
+                    else if(!request.getData().toString().equals(DATA_NOT_VALID)) {
                         System.exit(1);
                     }
                     break;
 
                 default:
-                    PlaceExchange.writeTo(out,new PlaceRequest(PlaceRequest.RequestType.ERROR,PlaceExchange.INVALID_TYPE + request.getType().toString()));
+                    writeTo(out,new PlaceRequest(ERROR,INVALID_TYPE + request.getType().toString()));
                     break;
             }
         }

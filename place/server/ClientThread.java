@@ -2,13 +2,16 @@ package place.server;
 
 import place.PlaceBoard;
 import place.PlaceTile;
-import place.network.PlaceExchange;
 import place.network.PlaceRequest;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+
+import static place.server.PlaceServer.*;
+import static place.network.PlaceExchange.*;
+import static place.network.PlaceRequest.RequestType.*;
 
 public class ClientThread extends Thread{
 
@@ -18,36 +21,48 @@ public class ClientThread extends Thread{
     private ObjectOutputStream out;
     private PlaceBoard board;
 
-    public ClientThread(String u, Socket c, ObjectInputStream i, ObjectOutputStream o, int d) {
+    public ClientThread(String u, Socket c, ObjectInputStream i, ObjectOutputStream o, PlaceBoard b) {
         username = u;
         client = c;
         in = i;
         out = o;
-        board = new PlaceBoard(d);
+        board = b;
     }
 
-    protected synchronized boolean login(String name) {
-        if(PlaceServer.users.isEmpty()) {
-            PlaceServer.users.put(PlaceExchange.hash(name),this);
+    private synchronized boolean login(String name) {
+        if(users.isEmpty()) {
+            users.put(hash(name),this);
         }
-        else if(PlaceServer.users.containsKey(PlaceExchange.hash(name))) {
+        else if(users.containsKey(hash(name))) {
             return false;
         }
         else {
-            PlaceServer.users.put(PlaceExchange.hash(name),this);
+            users.put(hash(name),this);
         }
+        System.out.println("Login success!");
+        System.out.println("Users online: " + users.keySet().size());
         return true;
     }
 
-    private synchronized void attemptLogin(String name) {
-        System.out.println("Logging in " + name);
+    private synchronized void attemptLogin(String nameSent) {
+        String name = "";
+        for(int i = 0; i < nameSent.length(); i++) {
+            if((int)nameSent.charAt(i) != (int)' ') {
+                name += nameSent.charAt(i);
+            }
+            else {
+                name += '_';
+            }
+        }
+        System.out.println("Attemping to log in new user " + name + "\n");
         if(login(name)) {
             username = name;
-            PlaceExchange.writeTo(out,new PlaceRequest(PlaceRequest.RequestType.LOGIN_SUCCESS,PlaceExchange.LOGGED_IN + name + client.getRemoteSocketAddress().toString()));
-            PlaceExchange.writeTo(out,new PlaceRequest(PlaceRequest.RequestType.BOARD,board));
+            writeTo(out,new PlaceRequest(LOGIN_SUCCESS,LOGGED_IN + name + client.getRemoteSocketAddress().toString()));
+            writeTo(out,new PlaceRequest(BOARD,board));
         }
         else {
-            PlaceExchange.writeTo(out,new PlaceRequest(PlaceRequest.RequestType.ERROR,PlaceExchange.BAD_USERNAME));
+            System.out.println("Username unavailable\n");
+            writeTo(out,new PlaceRequest(ERROR,BAD_USERNAME));
         }
     }
 
@@ -66,20 +81,20 @@ public class ClientThread extends Thread{
     private synchronized void updateBoard(PlaceTile tile) {
         tile.setOwner(username);
         board.setTile(tile);
-       broadcast(new PlaceRequest(PlaceRequest.RequestType.TILE_CHANGED,tile));
+       broadcast(new PlaceRequest(TILE_CHANGED,tile));
     }
 
     private synchronized void broadcast(PlaceRequest request) {
-        for(String key : PlaceServer.users.keySet()) {
-            ClientThread ct = (ClientThread)PlaceServer.users.get(key);
-            PlaceExchange.writeTo(ct.out,request);
+        for(String key : users.keySet()) {
+            ClientThread ct = users.get(key);
+            writeTo(ct.out,request);
         }
     }
 
     @Override
     public void run() {
         while(!client.isClosed()) {
-            PlaceRequest request = PlaceExchange.receiveRequest(in);
+            PlaceRequest request = receiveRequest(in);
             switch (request.getType()) {
 
                 case LOGIN:
@@ -87,21 +102,21 @@ public class ClientThread extends Thread{
                     break;
 
                 case CHANGE_TILE:
-                    updateBoard((PlaceTile) request.getData());
+                    updateBoard((PlaceTile)request.getData());
                     break;
 
                 case ERROR:
                     System.out.println(request.getData().toString());
-                    if(request.getData().toString().equals(PlaceExchange.LOGGED_OUT)) {
+                    if(request.getData().toString().equals(LOGGED_OUT)) {
                         logout();
                     }
-                    else if(!request.getData().toString().equals(PlaceExchange.DATA_NOT_VALID)) {
+                    else if(!request.getData().toString().equals(DATA_NOT_VALID)) {
                         System.exit(1);
                     }
                     break;
 
                 default:
-                    PlaceExchange.writeTo(out,new PlaceRequest(PlaceRequest.RequestType.ERROR,PlaceExchange.INVALID_TYPE + request.getType().toString()));
+                    writeTo(out,new PlaceRequest(ERROR,INVALID_TYPE + request.getType().toString()));
                     break;
             }
         }

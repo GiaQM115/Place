@@ -7,8 +7,6 @@ import java.util.Observable;
 
 public class BoardModel extends Observable{
 
-    private static PlaceTile recent = null;
-
     private PlaceBoard board;
 
     public BoardModel(PlaceBoard b) {
@@ -23,16 +21,9 @@ public class BoardModel extends Observable{
         return board;
     }
 
-    public static void setRecent(PlaceTile t) {
-        recent = t;
-    }
-
-    public void notifier() {
-        if(recent != null) {
-            update(recent);
-            super.setChanged();
-            super.notifyObservers(recent);
-        }
+    public void notifier(PlaceTile changed) {
+        super.setChanged();
+        super.notifyObservers(changed);
     }
 
 }

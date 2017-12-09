@@ -1,7 +1,6 @@
 package place.server;
 
-import place.network.PlaceExchange;
-import place.network.PlaceRequest;
+import place.PlaceBoard;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -13,6 +12,7 @@ import java.util.HashMap;
 public class PlaceServer {
 
     protected static HashMap<String,ClientThread> users = new HashMap<>();
+    protected static PlaceBoard masterBoard;
 
     public static void main(String[] args) {
         if(args.length != 2) {
@@ -23,15 +23,17 @@ public class PlaceServer {
             System.out.println("dim must be at least 1");
             System.exit(1);
         }
-        System.out.println("Starting server.\nServer started!\nLooking for connections...");
+        masterBoard = new PlaceBoard(Integer.parseInt(args[1]));
+        System.out.println("Server started!");
+        System.out.println("Waiting for new connections...\n");
             try {
                 ServerSocket serverConnection = new ServerSocket(Integer.parseInt(args[0]));
                 while(true) {
                     Socket clientConnection = serverConnection.accept();
                     ObjectInputStream in = new ObjectInputStream(clientConnection.getInputStream());
                     ObjectOutputStream out = new ObjectOutputStream(clientConnection.getOutputStream());
-                    System.out.println("Connection found!");
-                    ClientThread worker = new ClientThread("", clientConnection, in, out, Integer.parseInt(args[1]));
+                    System.out.println("Connection found!\n");
+                    ClientThread worker = new ClientThread("", clientConnection, in, out, masterBoard);
                     worker.join();
                     worker.start();
                 }

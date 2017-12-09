@@ -2,6 +2,8 @@ package place.network;
 
 import place.PlaceColor;
 
+import static place.PlaceColor.*;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -15,10 +17,10 @@ public class PlaceExchange {
     public static final String INVALID_TYPE = "Cannot handle requests of type ";
 
     public static final PlaceColor[] COLORS = {
-            PlaceColor.BLACK,PlaceColor.GRAY,PlaceColor.SILVER,PlaceColor.WHITE,
-            PlaceColor.MAROON,PlaceColor.RED,PlaceColor.OLIVE, PlaceColor.YELLOW,
-            PlaceColor.GREEN,PlaceColor.LIME,PlaceColor.TEAL,PlaceColor.AQUA,
-            PlaceColor.NAVY,PlaceColor.BLUE,PlaceColor.PURPLE,PlaceColor.FUCHSIA
+            BLACK,GRAY,SILVER,WHITE,
+            MAROON,RED,OLIVE,YELLOW,
+            GREEN,LIME,TEAL,AQUA,
+            NAVY,BLUE,PURPLE,FUCHSIA
     };
 
     /**
