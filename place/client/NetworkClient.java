@@ -44,7 +44,19 @@ public class NetworkClient extends Thread {
     }
 
     public PlaceBoard getBoard() {
+        if(model == null) {
+            return null;
+        }
         return model.getBoard();
+    }
+
+    public void retryLogin(String command) {
+        writeTo(out,new PlaceRequest(LOGIN,command));
+    }
+
+    public void logout() {
+        writeTo(out,new PlaceRequest(ERROR,LOGGED_OUT));
+        System.exit(1);
     }
 
     @Override

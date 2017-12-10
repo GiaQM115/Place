@@ -61,15 +61,6 @@ public class PlacePTUI extends Thread implements Observer{
         return BLACK;
     }
 
-    private void logout() {
-        writeTo(worker.getOutStream(),new PlaceRequest(ERROR,LOGGED_OUT));
-        System.exit(1);
-    }
-
-    private void retryLogin(String command) {
-        writeTo(worker.getOutStream(),new PlaceRequest(LOGIN,command));
-    }
-
     private void formatTile(int[] cmd, long time) {
         if (cmd.length == 3) {
             PlaceColor col = getColor(cmd[2]);
@@ -103,11 +94,11 @@ public class PlacePTUI extends Thread implements Observer{
                 Long time = System.currentTimeMillis();
 
                 if((command.length() == 2) && (Integer.parseInt(command) == -1)) {
-                    logout();
+                    worker.logout();
                 }
 
                 else if(NetworkClient.loginFailed) {
-                    retryLogin(command);
+                    worker.retryLogin(command);
                 }
 
                 else {
