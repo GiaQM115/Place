@@ -149,9 +149,11 @@ public class PlacePTUI extends Thread implements Observer{
             ui.sleep(1000);
             ui.start();
         } catch (IOException ioe) {
-            System.out.println(ioe.getMessage());
+            System.out.println(ioe.getMessage() + "\nExiting.");
+            System.exit(1);
         } catch (InterruptedException ie) {
-            System.out.println(ie.getMessage());
+            System.out.println(ie.getMessage() + "\nExiting.");
+            System.exit(1);
         }
     }
 
