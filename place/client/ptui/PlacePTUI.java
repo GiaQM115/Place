@@ -27,15 +27,30 @@ public class PlacePTUI extends Thread implements Observer{
         userInput = new BufferedReader(new InputStreamReader(System.in));
     }
 
+    /**
+     * called when the worker thread is sent a copy of the board from the server
+     * updates the view for this user
+     */
     public void initBoard() {
         board = worker.getBoard();
         updateView();
     }
 
+    /**
+     * insantiates a worker thread (NetworkClient) for this UI
+     * @param con the connection Socket
+     * @param o the associated output stream
+     * @param i the associated input stream
+     */
     public void setWorker(Socket con, ObjectOutputStream o, ObjectInputStream i) {
         worker = new NetworkClient(username, con, o, i, this);
     }
 
+    /**
+     * called when Observers are notified of a model change
+     * @param t the Observable (BoardModel containing a PlaceBoard)
+     * @param o the PlaceTile that was changed
+     */
     public void update(Observable t, Object o) {
         board.setTile((PlaceTile)o);
         String owner = ((PlaceTile)o).getOwner();
@@ -48,10 +63,18 @@ public class PlacePTUI extends Thread implements Observer{
         }
     }
 
+    /**
+     * renders updated information from update method as content for the user to phsyically view
+     */
     public void updateView() {
         System.out.println("Place: " + username + board.toString() + "\n");
     }
 
+    /**
+     * what PlaceColor does this number represent?
+     * @param c the color the user wants
+     * @return the PlaceColor this number corresponds to
+     */
     private PlaceColor getColor(int c) {
         for(PlaceColor color : COLORS) {
             if(c == color.getNumber()) {
@@ -61,6 +84,12 @@ public class PlacePTUI extends Thread implements Observer{
         return BLACK;
     }
 
+    /**
+     * creates and sends a new PlaceTile object based from user input (row column and color) as well as
+     * the time stamp stored by the UI when command is received
+     * @param cmd the users input
+     * @param time the timestamp
+     */
     private void formatTile(int[] cmd, long time) {
         if (cmd.length == 3) {
             PlaceColor col = getColor(cmd[2]);

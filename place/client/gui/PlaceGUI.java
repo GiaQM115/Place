@@ -35,6 +35,10 @@ import java.util.*;
 
 public class PlaceGUI extends Application implements Observer{
 
+    /*
+    A COMPLETE MESS OF GARBAGE
+    These are the elements that are accessed in more than one method without being passed in (IE what's updated on screen)
+     */
     private BorderPane wrapperInit = new BorderPane();
     private HBox topBoxes = new HBox(0.5);
     private HBox bottomBoxes = new HBox(0.5);
@@ -74,6 +78,9 @@ public class PlaceGUI extends Application implements Observer{
     private NetworkClient worker;
 
 
+    /**
+     * stores a copy of the current PlaceBoard when the worker thread receives it from the server
+     */
     public void initBoard() {
         while(worker.getBoard() == null) {
             try {
@@ -88,6 +95,10 @@ public class PlaceGUI extends Application implements Observer{
         updateView("PLACE");
     }
 
+    /**
+     * changes graphics on screen
+     * @param scene name of the scene to be displayed in HashMap
+     */
     public void updateView(String scene) {
         javafx.application.Platform.runLater( () -> {
             currentLoc.setText("Current Tile at (" + tileRow + "," + tileCol + ")");
@@ -98,7 +109,7 @@ public class PlaceGUI extends Application implements Observer{
             placeData.getChildren().add(new VBox(currentLoc,currentOwner,currentTime,currentColor));
             Color bg = Color.rgb(placecol.getRed(),placecol.getGreen(),placecol.getBlue());
             placeBox.setBackground(new Background(new BackgroundFill(bg,CornerRadii.EMPTY,Insets.EMPTY)));
-            if(placecol.equals(WHITE)) {
+            if(placecol.equals(BLACK)) {
                 mostRecent.setTextFill(Color.rgb(255,255,255));
                 currentColor.setTextFill(Color.rgb(255,255,255));
                 currentOwner.setTextFill(Color.rgb(255,255,255));
@@ -117,6 +128,11 @@ public class PlaceGUI extends Application implements Observer{
         });
     }
 
+    /**
+     * updates board with tile changes when model is changed and observers are notified
+     * @param t BoardModel with PlaceBoard
+     * @param o PlaceTile that was changed
+     */
     public void update(Observable t,Object o) {
         board.setTile((PlaceTile)o);
         String owner = ((PlaceTile)o).getOwner();
@@ -126,6 +142,11 @@ public class PlaceGUI extends Application implements Observer{
         updateView("PLACE");
     }
 
+    /**
+     * changes the colors of the tiles on screen to match the updated BoardModel
+     * @param t the most recent tile change
+     * @param o the owner of that tile
+     */
     private void refreshTiles(PlaceTile t, String o) {
         String owns = o;
         if(username.equals(o)) {
@@ -140,6 +161,13 @@ public class PlaceGUI extends Application implements Observer{
         mostRecent.setText(owns + " made the most recent tile change!");
     }
 
+    /**
+     * creates the connection between the server and worker thread, and begins login communications
+     * @param host host name
+     * @param port port number
+     * @param name desired username
+     * @throws IOException
+     */
     public void connect(String host, int port, String name) throws IOException{
         Socket connection = new Socket(host,port);
         ObjectOutputStream out = new ObjectOutputStream(connection.getOutputStream());
@@ -148,6 +176,10 @@ public class PlaceGUI extends Application implements Observer{
         worker.start();
     }
 
+    /**
+     * called super.init() for javafx application launch
+     * sends parameters into connect to start worker thread
+     */
     @Override
     public void init() {
         try {
@@ -170,6 +202,10 @@ public class PlaceGUI extends Application implements Observer{
         }
     }
 
+    /**
+     * displays initial scene
+     * @param s the Stage this application will use
+     */
     public void start(Stage s) {
         stage = s;
         stage.setResizable(false);
@@ -190,6 +226,15 @@ public class PlaceGUI extends Application implements Observer{
         Application.launch(args);
     }
 
+    /*
+    ALL OF THE METHODS BELOW HERE ARE STRICTLY FOR STYLING GUI ELEMENTS
+    it's ugly spaghetti code
+    GL, Friend
+     */
+
+    /**
+     * creates the border of filled rectangles on login and entry screens
+     */
     private void fillRectangles() {
         for(int i = 0; i < 16; i++) {
             Color c = Color.rgb(COLORS[i].getRed(),COLORS[i].getGreen(),COLORS[i].getBlue());
@@ -208,6 +253,9 @@ public class PlaceGUI extends Application implements Observer{
         }
     }
 
+    /**
+     * styles the labels, button, and textfield for login and entry screens
+     */
     private void formatWelcomeScreen() {
         welcome.setTextAlignment(TextAlignment.CENTER);
         welcome.setTextFill(Color.BLACK);
@@ -228,6 +276,10 @@ public class PlaceGUI extends Application implements Observer{
         enter.setFont(Font.font("Verdana",12));
     }
 
+    /**
+     * the method that's called when enter is pressed;
+     * decides action based on whether user is viewing login or entry screen
+     */
     private void handleEnter() {
         if(worker.loginFailed) {
             worker.retryLogin(newName.getText());
@@ -245,6 +297,9 @@ public class PlaceGUI extends Application implements Observer{
         }
     }
 
+    /**
+     * creates and builds the scene I keep calling entry screen
+     */
     private void initial() {
         fillRectangles();
         formatWelcomeScreen();
@@ -256,12 +311,21 @@ public class PlaceGUI extends Application implements Observer{
         scenes.put("INITIAL",new Scene(wrapperInit));
     }
 
+    /**
+     * called when the username passed in from parameters is taken
+     * modifies entry screen to become login screen
+     * allows user to try a new name
+     */
     private void relog() {
         welcome.setText("Username taken\nTry another name.\n\n\n");
         welcome.setFont(Font.font("Verdana",14));
         centerBoxes.getChildren().add(1,newName);
     }
 
+    /**
+     * called when the user finally finds a name that can be used
+     * re-creates entry screen
+     */
     public void reinit() {
         if(worker.loginFailed) {
             newName.clear();
@@ -273,6 +337,10 @@ public class PlaceGUI extends Application implements Observer{
         }
     }
 
+    /**
+     * builds and displays the main screen, where the user interacts with the PlaceBoard representation
+     * it's a GridPane of rectangles
+     */
     private void place() {
         boardGrid.setPrefRows(board.DIM);
         boardGrid.setPrefColumns(board.DIM);
@@ -303,6 +371,10 @@ public class PlaceGUI extends Application implements Observer{
         scenes.put("PLACE",new Scene(placeBox));
     }
 
+    /**
+     * create the rectangles for the GridPane mentioned above
+     * @return a list of rectangle objects that matches the current board at the time of login
+     */
     private ArrayList<Rectangle> fillPlace() {
         ArrayList<Rectangle> rects = new ArrayList<>();
         for(int i = 0; i < Math.pow(board.DIM,2); i++) {
@@ -334,6 +406,11 @@ public class PlaceGUI extends Application implements Observer{
         return rects;
     }
 
+    /**
+     * creates the bar of color choices at the bottom of screen
+     * the current color is the background of the screen (it's kind of annoying but I thought it would
+     * be a cool idea so I'm not changing it now)
+     */
     private void createColorBar() {
         for(int i = 0; i < COLORS.length; i++) {
             ToggleButton tb = new ToggleButton(COLORS[i].toString());

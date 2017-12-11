@@ -14,8 +14,11 @@ public class PlaceExchange {
     public static final String BAD_USERNAME = "This username is already in use.";
     public static final String LOGGED_OUT = "This client has logged out.";
     public static final String DATA_NOT_VALID = "Received invalid data\nNo changes made to state of board";
-    public static final String INVALID_TYPE = "Cannot handle requests of type ";
+    public static final String INVALID_TYPE = "Cannot handle requests of type "; // append with request type
 
+    /**
+     * array of colors used for tiles
+     */
     public static final PlaceColor[] COLORS = {
             BLACK,GRAY,SILVER,WHITE,
             MAROON,RED,OLIVE,YELLOW,
@@ -57,6 +60,12 @@ public class PlaceExchange {
         return request;
     }
 
+    /**
+     * hash function used in username verification
+     * concatenates a new String of the ASCII values for each character in this name
+     * @param n the name to be hashed
+     * @return the hashed name
+     */
     public static String hash(String n) {
         String h = "";
         for(int i = 0; i < n.length(); i++) {

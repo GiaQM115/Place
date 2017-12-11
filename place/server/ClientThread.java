@@ -29,6 +29,11 @@ public class ClientThread extends Thread{
         board = b;
     }
 
+    /**
+     * login procedure; verifies the username is unique, and adds to the map of users
+     * @param name the username trying to log in
+     * @return true if the name is unique, false if it's already taken
+     */
     private synchronized boolean login(String name) {
         if(users.isEmpty()) {
             users.put(hash(name),this);
@@ -44,6 +49,12 @@ public class ClientThread extends Thread{
         return true;
     }
 
+    /**
+     * doctors the name (replaces spaced with an underscore)
+     * sends the new name to login
+     * sends a PlaceRequest according to the outcome (whether or not the user was logged in)
+     * @param nameSent the name the user wants to log in as
+     */
     private synchronized void attemptLogin(String nameSent) {
         String name = "";
         for(int i = 0; i < nameSent.length(); i++) {
@@ -66,6 +77,10 @@ public class ClientThread extends Thread{
         }
     }
 
+    /**
+     * closes streams and Socket
+     * exits program
+     */
     private void logout() {
         try {
             in.close();
@@ -78,12 +93,22 @@ public class ClientThread extends Thread{
         }
     }
 
+    /**
+     * sets the user who sent this tile as the owner, regardless of what the user logged as the name
+     * updates own board
+     * broadcasts TILE_CHANGED
+     * @param tile the tile that a user wants to change
+     */
     private synchronized void updateBoard(PlaceTile tile) {
         tile.setOwner(username);
         board.setTile(tile);
        broadcast(new PlaceRequest(TILE_CHANGED,tile));
     }
 
+    /**
+     * sends the passed in PlaceRequest to all active users
+     * @param request the request to be sent
+     */
     private synchronized void broadcast(PlaceRequest request) {
         for(String key : users.keySet()) {
             ClientThread ct = users.get(key);

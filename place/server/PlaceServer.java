@@ -14,6 +14,11 @@ public class PlaceServer {
     protected static HashMap<String,ClientThread> users = new HashMap<>();
     protected static PlaceBoard masterBoard;
 
+    /**
+     * creates a server on desired port, and infinitely searches for connections
+     * when a connection is accepted, a ClientThread is created and run
+     * @param args port number for connections, dimensions of board
+     */
     public static void main(String[] args) {
         if(args.length != 2) {
             System.out.println("usage $ java PlaceServer port dim");

@@ -7,6 +7,9 @@ import java.util.Observable;
 
 public class BoardModel extends Observable{
 
+    /*
+    WRAPPER CLASS FOR PLACEBOARD TO APPEND WITH OBSERVABLE FUNCTIONALITY
+     */
     private PlaceBoard board;
 
     public BoardModel(PlaceBoard b) {

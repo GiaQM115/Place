@@ -31,18 +31,34 @@ public class NetworkClient extends Thread {
         ui = observer;
     }
 
+    /**
+     * what is this clients username?
+     * @return String with the username
+     */
     public String getUsername() {
         return username;
     }
 
+    /**
+     * used by the UI when a PlaceRequest needs to be sent from there rather than in NetworkClient
+     * @return the output stream associated with this clients connection
+     */
     public ObjectOutputStream getOutStream() {
         return out;
     }
 
+    /**
+     * is this connection still active?
+     * @return true if the Socket is open, else false
+     */
     public boolean running() {
         return !(connection.isClosed());
     }
 
+    /**
+     * what does the clients board look like?
+     * @return this clients PlaceBoard object
+     */
     public PlaceBoard getBoard() {
         if(model == null) {
             return null;
@@ -50,10 +66,17 @@ public class NetworkClient extends Thread {
         return model.getBoard();
     }
 
+    /**
+     * used when login is failed, just re-sends login request with the new name
+     * @param command the new name to try with
+     */
     public void retryLogin(String command) {
         writeTo(out,new PlaceRequest(LOGIN,command));
     }
 
+    /**
+     * tells the server this user is logging out and exits
+     */
     public void logout() {
         writeTo(out,new PlaceRequest(ERROR,LOGGED_OUT));
         System.exit(1);
