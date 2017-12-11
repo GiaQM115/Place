@@ -90,7 +90,6 @@ public class NetworkClient extends Thread {
                     PlaceTile current = (PlaceTile)request.getData();
                     model.update(current);
                     model.notifier(current);
-
                     break;
 
                 case ERROR:
