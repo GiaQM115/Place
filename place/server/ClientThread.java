@@ -135,9 +135,6 @@ public class ClientThread extends Thread{
                     if(request.getData().toString().equals(LOGGED_OUT)) {
                         logout();
                     }
-                    else if(!request.getData().toString().equals(DATA_NOT_VALID)) {
-                        System.exit(1);
-                    }
                     break;
 
                 default:
